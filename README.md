@@ -34,7 +34,10 @@ The automation follows a simple but effective workflow:
 <img alt="Credits" src="https://img.shields.io/badge/Data%20Source-xGustavvo%20discord--api--tracker%20repo-blue" />
 
 Quest data is sourced from [xGustavvo's discord-api-tracker](https://github.com/xGustavvo/discord-api-tracker) repository.
+## Updates
+Here, significant changes to this repository will be shown.
 
+13.08.2026 > No longer using Github Action's automatic cron job option due to how unreliable it is (takes around 1+ hour) and changed to using cron-job.org instead [ more reliable ] to trigger the YML file.
 ## Project Structure
 
 ```
