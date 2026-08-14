@@ -1,6 +1,6 @@
 # /quest-tracker
 
-<img alt="Version" src="https://img.shields.io/badge/Version-0.0.2-orange" />
+<img alt="Version" src="https://img.shields.io/badge/Version-0.0.3-orange" />
 <img alt="Language" src="https://img.shields.io/badge/Language-Python-blue" />
 <img alt="Automation" src="https://img.shields.io/badge/Automation-GitHub%20Actions-black" />
 
