@@ -5,12 +5,7 @@ from datetime import datetime, timezone
 
 import requests
 
-QUEST_SOURCES = [
-    "https://raw.githubusercontent.com/xGustavvo/discord-api-tracker/refs/heads/main/data/quests-01.json",
-    "https://raw.githubusercontent.com/xGustavvo/discord-api-tracker/refs/heads/main/data/quests-02.json",
-]
-FALLBACK_QUEST_URL = "https://raw.githubusercontent.com/xGustavvo/discord-api-tracker/refs/heads/main/quest.json"
-RESTRICTIONS_URL = "https://gist.githubusercontent.com/xGustavvo/3d08b7369eb34b50834815fd43176cae/raw"
+QUEST_URL = "https://raw.githubusercontent.com/xGustavvo/discord-api-tracker/refs/heads/main/quest.json"
 
 STATE_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "known_quests.json")
 
@@ -32,14 +27,6 @@ TASK_MAP = {
     "PLAY_ACTIVITY": "Activity",
     "STREAM_ON_DESKTOP": "Desktop (Stream)",
     "win": "Win",
-}
-
-REGION_FLAGS = {
-    "AT": "🇦🇹", "AU": "🇦🇺", "BE": "🇧🇪", "BR": "🇧🇷", "CA": "🇨🇦", "CH": "🇨🇭", "CN": "🇨🇳",
-    "CZ": "🇨🇿", "DE": "🇩🇪", "DK": "🇩🇰", "ES": "🇪🇸", "FI": "🇫🇮", "FR": "🇫🇷", "HK": "🇭🇰",
-    "HU": "🇭🇺", "IE": "🇮🇪", "IN": "🇮🇳", "IT": "🇮🇹", "JP": "🇯🇵", "KR": "🇰🇷", "MX": "🇲🇽",
-    "NL": "🇳🇱", "NO": "🇳🇴", "NZ": "🇳🇿", "PL": "🇵🇱", "PT": "🇵🇹", "SE": "🇸🇪", "SG": "🇸🇬",
-    "SK": "🇸🇰", "UK": "🇬🇧", "US": "🇺🇸", "VN": "🇻🇳",
 }
 
 REWARD_TYPE_NAMES = {
@@ -78,36 +65,16 @@ def normalize_quest(q):
 
 
 def load_all_quests():
-    quest_lists = [fetch_json(url) for url in QUEST_SOURCES]
-    fallback = fetch_json(FALLBACK_QUEST_URL)
+    data = fetch_json(QUEST_URL)
+    if not isinstance(data, list):
+        return {}
 
     data_map = {}
-
-    for lst in quest_lists:
-        if not isinstance(lst, list):
-            continue
-        for q in lst:
-            nq = normalize_quest(q)
-            if nq.get("id"):
-                data_map[nq["id"]] = nq
-
-    if isinstance(fallback, list):
-        for q in fallback:
-            nq = normalize_quest(q)
-            if nq.get("id"):
-                data_map.setdefault(nq["id"], nq)
-
+    for q in data:
+        nq = normalize_quest(q)
+        if nq.get("id"):
+            data_map[nq["id"]] = nq
     return data_map
-
-
-def load_restrictions():
-    try:
-        data = fetch_json(RESTRICTIONS_URL)
-    except Exception:
-        return {}, []
-    quests = data.get("quests", []) if isinstance(data, dict) else []
-    by_id = {q.get("id"): q for q in quests if q.get("id")}
-    return by_id, quests
 
 
 def get_rewards(q):
@@ -143,23 +110,7 @@ def to_discord_ts(iso, style="R"):
         return "?"
 
 
-def normalize_regions(regions):
-    if isinstance(regions, list):
-        return {"type": "include", "list": regions}
-    if isinstance(regions, dict):
-        return {
-            "type": "advanced",
-            "include": regions.get("include", []),
-            "exclude": regions.get("exclude", []),
-        }
-    return None
-
-
-def region_label(code):
-    return f"{REGION_FLAGS.get(code, '')} {code}".strip()
-
-
-def build_embed(quest, restrictions_by_id, restrictions_list):
+def build_embed(quest):
     qid = quest["id"]
     cfg = quest.get("config") or {}
     name = (cfg.get("messages") or {}).get("quest_name", "Unknown Quest")
@@ -182,50 +133,12 @@ def build_embed(quest, restrictions_by_id, restrictions_list):
     task_names = [task_name(t) for t in tasks.values()] if tasks else []
     task_text = " / ".join(task_names) if task_names else "None"
 
-    restriction = restrictions_by_id.get(qid)
-    if not restriction or not (restriction.get("regions") or []):
-        restriction = next(
-            (r for r in restrictions_list if r.get("replacement_id") == qid), None
-        )
-
     fields = [
         {"name": "Starts", "value": to_discord_ts(starts_at), "inline": True},
         {"name": "Expires", "value": to_discord_ts(expires_at), "inline": True},
         {"name": "Reward(s)", "value": reward_text, "inline": False},
         {"name": "Task(s)", "value": task_text, "inline": False},
     ]
-
-    if restriction:
-        if restriction.get("show_age_gate"):
-            fields.append({"name": "Age Restriction", "value": "🔞", "inline": True})
-
-        if restriction.get("is_global") is False:
-            norm = normalize_regions(restriction.get("regions"))
-            if norm:
-                if norm["type"] == "include" and norm.get("list"):
-                    fields.append({
-                        "name": "Regions (Include)",
-                        "value": ", ".join(region_label(r) for r in norm["list"]),
-                        "inline": False,
-                    })
-                if norm["type"] == "advanced":
-                    if norm.get("include"):
-                        fields.append({
-                            "name": "Regions (Include)",
-                            "value": ", ".join(region_label(r) for r in norm["include"]),
-                            "inline": False,
-                        })
-                    if norm.get("exclude"):
-                        fields.append({
-                            "name": "Regions (Exclude)",
-                            "value": ", ".join(region_label(r) for r in norm["exclude"]),
-                            "inline": False,
-                        })
-
-        if restriction.get("replacement_id") or any(
-            r.get("replacement_id") == qid for r in restrictions_list
-        ):
-            fields.append({"name": "Linked", "value": "🔗", "inline": True})
 
     return {
         "title": f"🆕 New Quest: {name}",
@@ -270,8 +183,6 @@ def main():
         sys.exit(1)
 
     quests = load_all_quests()
-    restrictions_by_id, restrictions_list = load_restrictions()
-
     current_ids = {qid for qid in quests.keys() if qid not in TEST_QUEST_IDS}
 
     previous_ids = load_state()
@@ -286,12 +197,7 @@ def main():
     new_ids = current_ids - previous_ids
 
     if new_ids:
-        embeds = []
-        for qid in new_ids:
-            quest = quests.get(qid)
-            if not quest:
-                continue
-            embeds.append(build_embed(quest, restrictions_by_id, restrictions_list))
+        embeds = [build_embed(quests[qid]) for qid in new_ids if qid in quests]
         if embeds:
             send_webhook(webhook_url, embeds)
             print(f"Sent notifications for {len(embeds)} new quest(s): {', '.join(new_ids)}")
