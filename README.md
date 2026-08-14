@@ -6,20 +6,18 @@
 
 ## What does this do?
 
-**quest-tracker** is an automated monitoring system that watches for new quest additions and notifies you via Discord. It continuously compares Discord's quest data against a local database to detect when new quests are released, then sends real-time notifications.
+**quest-tracker** is an automated monitoring system that watches for new quest additions and notifies you via Discord. It continuously compares Discord's quest data (thanks to xGustavvo's JSON file of all Discord Quests) against a local database to detect when new quests are released and then sends them as notifications via a Discord Webhook.
 
 ## How it works
 
-The automation follows a simple but effective workflow:
 
-1. **GitHub Actions Trigger** — The `quest-watch.yml` workflow runs on a scheduled interval
-2. **Fetch Latest Data** — Pulls the current `quests.json` from [xGustavvo's discord-api-tracker](https://github.com/xGustavvo/discord-api-tracker) repo
-3. **Compare Quests** — Compares fetched data against the locally stored `data/known_quests.json` file from the previous run
-4. **Detect New Quests** — Looks specifically for **new quest IDs** (not edits to existing quests)
-5. **Update & Notify** — When a new quest is found:
+1. GitHub Actions Trigger — The `quest-watch.yml` workflow runs on a scheduled interval (every 5 minutes using cron-job.org)
+2. Fetch Latest Data — Pulls the current `quests.json` from [xGustavvo's discord-api-tracker](https://github.com/xGustavvo/discord-api-tracker) repo
+3. Compare Quests — Compares fetched data against the locally stored `data/known_quests.json` file from the previous run
+4. Detect New Quests — Looks specifically for new quest IDs (not edits to existing quests which frequently pop up)
+5. Update + Notify — When a new quest is found:
    - Saves the new quest ID to the known quests list
    - Sends a Discord webhook notification with the quest details
-   - Ready to detect the next new quest on the next run
 
 
 
@@ -27,7 +25,7 @@ The automation follows a simple but effective workflow:
 
 - **Python** — Core logic for quest comparison and webhook delivery
 - **YAML** — GitHub Actions workflow configuration
-- **Discord Webhooks** — Real-time notifications
+- **Discord Webhooks** — Real-time notifications on Discord
 
 ## Credits
 
@@ -38,6 +36,7 @@ Quest data is sourced from [xGustavvo's discord-api-tracker](https://github.com/
 Here, significant changes to this repository will be shown.
 
 13.08.2026 > No longer using Github Action's automatic cron job option due to how unreliable it is (takes around 1+ hour) and changed to using cron-job.org instead [ more reliable ] to trigger the YML file.
+
 ## Project Structure
 
 ```
