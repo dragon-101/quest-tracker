@@ -16,8 +16,8 @@
 3. Compare Quests > Compares fetched data against the locally stored `data/known_quests.json` file from the previous run
 4. Detect New Quests > Looks specifically for new quest IDs (not edits to existing quests which frequently pop up)
 5. Update + Notify > When a new quest is found:
-   >> Saves the new quest ID to the known quests list
-   >> Sends a Discord webhook notification with the quest details
+   -> Saves the new quest ID to the known quests list
+   -> Sends a Discord webhook notification with the quest details
 
 
 
