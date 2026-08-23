@@ -36,6 +36,7 @@ Quest data is sourced from [xGustavvo's discord-api-tracker](https://github.com/
 Here, significant changes to this repository will be shown.
 
 13.08.2026 > No longer using Github Action's automatic cron job option due to how unreliable it is (takes around 1+ hour) and changed to using cron-job.org instead [ more reliable ] to trigger the YML file.
+23.08.2026 > GitHub workflows free tier seems to be more limited than I first expected, doesn't seem to like how I run it every 5 minutes every day. Probably going to have to find an alternative to it.. (either another GitHub alternative or another method)
 
 ## Project Structure
 
