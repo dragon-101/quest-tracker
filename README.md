@@ -11,21 +11,17 @@
 ## How it works
 
 
-1. GitHub Actions Trigger — The `quest-watch.yml` workflow runs on a scheduled interval (every 5 minutes using cron-job.org)
-2. Fetch Latest Data — Pulls the current `quests.json` from [xGustavvo's discord-api-tracker](https://github.com/xGustavvo/discord-api-tracker) repo
-3. Compare Quests — Compares fetched data against the locally stored `data/known_quests.json` file from the previous run
-4. Detect New Quests — Looks specifically for new quest IDs (not edits to existing quests which frequently pop up)
-5. Update + Notify — When a new quest is found:
-   - Saves the new quest ID to the known quests list
-   - Sends a Discord webhook notification with the quest details
+1. GitHub Actions Trigger > The `quest-watch.yml` workflow runs on a scheduled interval (every 5 minutes using cron-job.org)
+2. Fetch Latest Data > Pulls the current `quests.json` from [xGustavvo's discord-api-tracker](https://github.com/xGustavvo/discord-api-tracker) repo
+3. Compare Quests > Compares fetched data against the locally stored `data/known_quests.json` file from the previous run
+4. Detect New Quests > Looks specifically for new quest IDs (not edits to existing quests which frequently pop up)
+5. Update + Notify > When a new quest is found:
+   >> Saves the new quest ID to the known quests list
+   >> Sends a Discord webhook notification with the quest details
 
 
 
-## Tech Stack
 
-- **Python** — Core logic for quest comparison and webhook delivery
-- **YAML** — GitHub Actions workflow configuration
-- **Discord Webhooks** — Real-time notifications on Discord
 
 ## Credits
 
@@ -35,8 +31,7 @@ Quest data is sourced from [xGustavvo's discord-api-tracker](https://github.com/
 ## Updates
 Here, significant changes to this repository will be shown.
 
-13.08.2026 > No longer using Github Action's automatic cron job option due to how unreliable it is (takes around 1+ hour) and changed to using cron-job.org instead [ more reliable ] to trigger the YML file.
-23.08.2026 > GitHub workflows free tier seems to be more limited than I first expected, doesn't seem to like how I run it every 5 minutes every day. Probably going to have to find an alternative to it.. (either another GitHub alternative or another method)
+N/A
 
 ## Project Structure
 
