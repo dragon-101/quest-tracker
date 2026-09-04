@@ -9,15 +9,6 @@ QUEST_URL = "https://raw.githubusercontent.com/xGustavvo/discord-api-tracker/ref
 
 STATE_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "known_quests.json")
 
-TEST_QUEST_IDS = {
-    "1193992107035983872",
-    "1417206015245418566",
-    "1223393873447878656",
-    "1276640451235156082",
-    "1483951358322147380",
-    "1519474065293967471",
-}
-
 TASK_MAP = {
     "WATCH_VIDEO": "Video",
     "WATCH_VIDEO_ON_MOBILE": "Mobile (Video)",
@@ -35,6 +26,17 @@ REWARD_TYPE_NAMES = {
     3: "Avatar Decoration",
     4: "Orbs",
     5: "Nitro",
+}
+
+FEATURE_NAMES = {
+    3: "ACTIVITY_QUEST_AUTO_ENROLLMENT",
+    9: "MOBILE_ACTIVITY_QUEST",
+    14: "QUESTS_CDN",
+    15: "PACING_CONTROLLER",
+    16: "QUEST_HOME_FORCE_STATIC_IMAGE",
+    17: "VIDEO_QUEST_FORCE_HLS_VIDEO",
+    18: "VIDEO_QUEST_FORCE_END_CARD_CTA_SWAP",
+    # dont think any more is needed (for now)
 }
 
 
@@ -110,13 +112,45 @@ def to_discord_ts(iso, style="R"):
         return "?"
 
 
+def format_date_range(starts_at, expires_at):
+    """Return absolute date range as 'DD/MM/YYYY - DD/MM/YYYY'."""
+    if not starts_at or not expires_at:
+        return "Unknown"
+    try:
+        start = datetime.fromisoformat(str(starts_at).replace("Z", "+00:00"))
+        end = datetime.fromisoformat(str(expires_at).replace("Z", "+00:00"))
+        return f"{start.strftime('%d/%m/%Y')} - {end.strftime('%d/%m/%Y')}"
+    except Exception:
+        return "Unknown"
+
+
 def build_embed(quest):
     qid = quest["id"]
     cfg = quest.get("config") or {}
-    name = (cfg.get("messages") or {}).get("quest_name", "Unknown Quest")
+    messages = cfg.get("messages") or {}
+    app = cfg.get("application") or {}
+    assets = cfg.get("assets") or {}
+
+    # basic info about the quest
+    name = messages.get("quest_name", "Unknown Quest")
     starts_at = cfg.get("starts_at")
     expires_at = cfg.get("expires_at")
 
+    # game + app id
+    game_title = messages.get("game_title") or app.get("name") or "Unknown Game"
+    app_id = app.get("id")
+    extra_desc = (
+        messages.get("description")
+        or (cfg.get("cta_config") or {}).get("description")
+        or ""
+    )
+
+    # features listing
+    features = cfg.get("features", [])
+    feature_names = [FEATURE_NAMES.get(f, f"Unknown({f})") for f in features]
+    feature_text = ", ".join(feature_names) if feature_names else "None"
+
+    # rewards
     rewards = get_rewards(quest)
     reward_lines = []
     for r in rewards:
@@ -129,18 +163,31 @@ def build_embed(quest):
         reward_lines.append(line)
     reward_text = "\n".join(reward_lines) if reward_lines else "No reward data"
 
+    # tasks
     tasks = get_tasks(cfg)
     task_names = [task_name(t) for t in tasks.values()] if tasks else []
     task_text = " / ".join(task_names) if task_names else "None"
 
+    duration = (
+        f"{to_discord_ts(starts_at)} – {to_discord_ts(expires_at)}\n"
+        f"(absolute: {format_date_range(starts_at, expires_at)})"
+    )
+
+    # embed fieldz
     fields = [
-        {"name": "Starts", "value": to_discord_ts(starts_at), "inline": True},
-        {"name": "Expires", "value": to_discord_ts(expires_at), "inline": True},
+        {"name": "Duration", "value": duration, "inline": False},
+        {"name": "Game", "value": game_title, "inline": True},
+        {"name": "Application", "value": app_id or "N/A", "inline": True},
+        {"name": "Features", "value": feature_text, "inline": False},
         {"name": "Reward(s)", "value": reward_text, "inline": False},
         {"name": "Task(s)", "value": task_text, "inline": False},
     ]
 
-    return {
+    # if the quest gives extra stuff
+    if extra_desc:
+        fields.insert(2, {"name": "Description", "value": extra_desc, "inline": False})
+
+    embed = {
         "title": f"🆕 New Quest: {name}",
         "url": f"https://discord.com/quests/{qid}",
         "color": 0x5865F2,
@@ -148,6 +195,13 @@ def build_embed(quest):
         "footer": {"text": f"Quest ID: {qid}"},
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
+
+    # thumbnailing
+    game_tile = assets.get("game_tile")
+    if game_tile and isinstance(game_tile, str) and game_tile.startswith("http"):
+        embed["thumbnail"] = {"url": game_tile}
+
+    return embed
 
 
 def send_webhook(webhook_url, embeds):
@@ -183,12 +237,12 @@ def main():
         sys.exit(1)
 
     quests = load_all_quests()
-    current_ids = {qid for qid in quests.keys() if qid not in TEST_QUEST_IDS}
+    current_ids = set(quests.keys())
 
     previous_ids = load_state()
 
     if previous_ids is None:
-        # First run: establish baseline only, no notifications for pre-existing quests.
+        # first run thingys
         save_state(current_ids)
         print(f"Baseline created with {len(current_ids)} quests. No notifications sent.")
         return
